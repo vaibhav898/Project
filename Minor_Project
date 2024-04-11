@@ -1,0 +1,55 @@
+#Importing Libraries
+import matplotlib.pyplot as plt 
+import pandas as pd
+import numpy as np
+
+#Read the data by using location path
+df = pd.read_csv(r'C:\Users\Vaibhav\Downloads\owid-covid-data.csv')
+
+#View the Data
+df
+
+#Show the first 5 rows
+print(df.head())
+
+#Show the basic summary of data
+print(df.describe())
+
+#Find total countries where total_deaths is greater than 1000000.
+# Assuming df is your DataFrame containing the COVID-19 data
+# Filter the DataFrame to include only rows where total_deaths is greater than 1000000
+filtered_df = df[df['total_deaths'] > 1000000]
+# Count the unique countries in the filtered DataFrame
+total_countries = filtered_df['location'].nunique()
+print("Total countries where total deaths are greater than 1,000,000:", total_countries)
+
+#BY USING LINE CHART
+# Assuming df is your DataFrame containing the COVID-19 data
+# Filter the DataFrame to include only rows where total_deaths is greater than 1000000
+filtered_df = df[df['total_deaths'] > 1000000]
+# Group by location and get the maximum total_deaths for each location
+grouped_df = filtered_df.groupby('location')['total_deaths'].max()
+# Plot the line chart
+plt.figure(figsize=(12, 6))
+grouped_df.plot(kind='line', marker='o')
+plt.title('Total Deaths > 1,000,000 by Country')
+plt.xlabel('Country')
+plt.ylabel('Total Deaths')
+plt.xticks(rotation=45)
+plt.grid(True)
+plt.show()
+
+#BY USING HISTOGRAM
+# Assuming df is your DataFrame containing the COVID-19 data
+# Filter the DataFrame to include only rows where total_deaths is greater than 1000000
+filtered_df = df[df['total_deaths'] > 1000000]
+# Group by location and count the number of dates for each location
+grouped_df = filtered_df.groupby('location')['date'].count()
+# Plot the histogram
+plt.figure(figsize=(12, 6))
+plt.hist(grouped_df, bins=20, color='skyblue', edgecolor='black')
+plt.title('Distribution of Dates with Total Deaths > 1,000,000 by Country')
+plt.xlabel('Number of Dates')
+plt.ylabel('Frequency')
+plt.grid(axis='y', alpha=0.75)
+plt.show()
