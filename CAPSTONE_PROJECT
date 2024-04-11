@@ -1,0 +1,95 @@
+#STOCK MARKET ANALYSIS
+#Installing necessary libraries:
+!pip install yfinance pandas_datareader
+#Fetching historical data
+import yfinance as yf
+stock = yf.Ticker("AAPL")  # Using Apple's stock symbol
+data = stock.history(period="1y")  # Fetching data for 1 year
+
+#Data Preprocessing
+data.dropna(inplace=True)  # This removes any rows with missing values
+
+import pandas as pd
+data.index = pd.to_datetime(data.index)
+#Calculate daily returns
+data['Daily Return'] = data['Close'].pct_change()
+
+#Exploratory Data Analysis (EDA)
+#Visualize stock price movements
+import matplotlib.pyplot as plt
+#A simple line plot can show us how the stock's closing price has moved over time
+data['Close'].plot(figsize=(12, 6), title="Stock Price Movement")
+plt.show()
+
+#Analyze volume of stocks traded
+data['Volume'].plot(figsize=(12, 6), title="Volume Traded Over Time")
+plt.show()
+
+#Correlation between stocks
+import seaborn as sns
+stock_list = ["AAPL", "MSFT", "JPM", "PEP", "GOOGL"]
+close_prices = pd.DataFrame()
+for stock in stock_list:
+   close_prices[stock] = yf.Ticker(stock).history(period="1y")['Close']
+correlation = close_prices.pct_change().corr()
+sns.heatmap(correlation, annot=True, cmap='coolwarm')
+plt.show()
+
+#Simple Moving Average (SMA)
+data['SMA50'] = data['Close'].rolling(window=50).mean()
+data['SMA200'] = data['Close'].rolling(window=200).mean()
+data[['Close', 'SMA50', 'SMA200']].plot(figsize=(12,6))
+plt.title('Simple Moving Average')
+plt.show()
+
+#Exponential Moving Average (EMA)
+data['EMA50'] = data['Close'].ewm(span=50, adjust=False).mean()
+data['EMA200'] = data['Close'].ewm(span=200, adjust=False).mean()
+data[['Close', 'EMA50', 'EMA200']].plot(figsize=(12,6))
+plt.title('Exponential Moving Average')
+plt.show()
+
+#Bollinger Bands:Bollinger Bands are used to determine overbought and oversold levels
+data['SMA20'] = data['Close'].rolling(window=20).mean()
+data['Upper'] = data['SMA20'] + 2*data['Close'].rolling(window=20).std()
+data['Lower'] = data['SMA20'] - 2*data['Close'].rolling(window=20).std()
+data[['Close', 'SMA20', 'Upper', 'Lower']].plot(figsize=(12,6))
+plt.title('Bollinger Bands')
+plt.show()
+
+#ARIMA Model:ARIMA stands for AutoRegressive Integrated Moving Average. It is a forecasting method for univariate time series data.
+from statsmodels.tsa.arima.model import ARIMA
+# Assuming data is your DataFrame containing the stock price data
+model = ARIMA(data['Close'], order=(5,1,0))
+results = model.fit()
+forecast = results.predict(start=90, end=103, dynamic=True)
+data['Forecast'] = forecast
+data[['Close', 'Forecast']].plot(figsize=(12,6))
+plt.title('Stock Price Prediction using ARIMA')
+plt.show()
+
+#Portfolio Optimization:When dealing with multiple stocks, it's crucial to determine how much of each stock you should hold in your portfolio
+from scipy.optimize import minimize
+import numpy as np
+# Assuming stock_list contains the symbols of the stocks in the portfolio
+returns = close_prices.pct_change()
+mean_returns = returns.mean()
+cov_matrix = returns.cov()
+num_portfolios = 10000
+risk_free_rate = 0.0178 # example value
+
+# Portfolio optimization function
+def portfolio_annualised_performance(weights, mean_returns, cov_matrix):
+   returns = np.sum(mean_returns*weights ) * 252
+   std = np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights))) * np.sqrt(252)
+   return std, returns
+# Minimize negative Sharpe Ratio to get optimal portfolio
+def neg_sharpe_ratio(weights, mean_returns, cov_matrix, risk_free_rate):
+   p_var, p_ret = portfolio_annualised_performance(weights, mean_returns, cov_matrix)
+   return -(p_ret - risk_free_rate) / p_var
+# Constraints for optimization
+constraints = ({'type': 'eq', 'fun': lambda x: np.sum(x) - 1})
+# Running the optimization
+initial = [1./len(stock_list) for asset in stock_list]
+bounds = tuple((0, 1) for asset in stock_list)  # Corrected bounds definition
+result = minimize(neg_sharpe_ratio, initial, args=(mean_returns, cov_matrix, risk_free_rate), bounds=bounds, constraints=constraints)
